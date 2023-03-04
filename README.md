@@ -109,7 +109,7 @@ plt.show()
 
 
 <p align="center">
-  <a href="https://fastapi.tiangolo.com"><img src="./plots/Logo.svg" alt="FastAPI"></a>
+  <a href="RothC"><img src="./plots/Logo.svg" alt="FastAPI"></a>
 </p>
 
 ### Equations
