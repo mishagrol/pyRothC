@@ -1,25 +1,37 @@
-## pyRothC
-____________
 <p align="center">
-    <em>Python version of The Rothamsted carbon model (RothC) 26.3.</em>
-</p>
-<p align="center">
-<a href="https://github.com/tiangolo/fastapi/actions?query=workflow%3ATest+event%3Apush+branch%3Amaster" target="_blank">
+<!-- <a href="https://github.com/tiangolo/fastapi/actions?query=workflow%3ATest+event%3Apush+branch%3Amaster" target="_blank">
     <img src="https://github.com/tiangolo/fastapi/workflows/Test/badge.svg?event=push&branch=master" alt="Test">
 </a>
 <a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/tiangolo/fastapi" target="_blank">
     <img src="https://coverage-badge.samuelcolvin.workers.dev/tiangolo/fastapi.svg" alt="Coverage">
-</a>
-<a href="https://pypi.org/project/fastapi" target="_blank">
-    <img src="https://img.shields.io/pypi/v/fastapi?color=%2334D058&label=pypi%20package" alt="Package version">
-</a>
+</a> -->
+<!-- <a href="https://pypi.org/project/fastapi" target="_blank">
+    <img src="https://img.shields.io/pypi/v/fastapi?color=%2334D058&label=pypi%20package" alt="Package version"> -->
+<!-- </a>
 <a href="https://pypi.org/project/fastapi" target="_blank">
     <img src="https://img.shields.io/pypi/pyversions/fastapi.svg?color=%2334D058" alt="Supported Python versions">
+</a> -->
+
+<img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/mishagrol/pyRothC?style=social">
+
+<a href="https://github.com/mishagrol/pyRothC/issues" target="_blank">
+    <img src="https://img.shields.io/github/issues/mishagrol/pyRothC" alt="Issues">
+</a>
+
+
+
+<a href="https://github.com/mishagrol/pyRothC/blob/main/LICENSE" target="_blank">
+    <img src="https://img.shields.io/github/license/mishagrol/pyRothC" alt="License">
 </a>
 </p>
 
----
+## pyRothC
 
+<p align="left">
+    <em>Python version of The Rothamsted carbon model (RothC) 26.3.</em>
+</p>
+
+________
 **Documentation**: <a href="https://www.rothamsted.ac.uk/sites/default/files/RothC_guide_DOS.pdf" target="_blank">Rothamsted RothC Model</a>
 
 **Source Code**: <a href="https://github.com/mishagrol/pyRothC" target="_blank">https://github.com/mishagrol/pyRothC</a>
@@ -31,6 +43,7 @@ pyRothc is a Python version of The Rothamsted carbon model (RothC) 26.3.
 
 RothC is a model for the turnover of organic carbon in non-waterlogged topsoil that allows for the effects of soil type, temperature, soil moisture and plant cover on the turnover process.
 
+Inspired by SoilR version <a href="https://www.bgc-jena.mpg.de/TEE/basics/2015/11/19/RothC/" target="_blank">SoilR RothC</a>
 
 ## Requirements
 
@@ -53,7 +66,6 @@ $ pip install pyRothC
 </div>
 
 ## Example
-
 
 
 ```Python
@@ -113,4 +125,4 @@ Matplotlib
 
 ## License
 
-This project is licensed under the terms of the MIT license.
+This project is licensed under the terms of the CC0 1.0 Universal license.
