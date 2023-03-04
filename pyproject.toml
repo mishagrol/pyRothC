@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Python version of The Rothamsted carbon model (RothC) 26.3. RothC is a model for the turnover of organic carbon in non-waterlogged topsoil that allows for the effects of soil type, temperature, soil moisture and plant cover on the turnover process."
 readme = "README.md"
 requires-python = ">=3.7"
-license = "MIT"
+license = {file = "LICENSE"}
 authors = [
   { name = "Misha Grol", email = "grol81@mail.ru" }
 ]
@@ -21,7 +21,7 @@ classifiers = [
   "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
-  "License :: OSI Approved :: MIT License",
+  "License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication",
   "Intended Audience :: End Users/Desktop",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
@@ -39,8 +39,6 @@ dependencies = [
 where = ["pyRothC"]
 include = ["*"]
 
-[tool.setuptools]
-include_package_data = true
 
 [project.urls]
 Documentation = "https://mishagrol.github.io"
