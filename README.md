@@ -1,17 +1,5 @@
+## pyRothC
 <p align="center">
-<!-- <a href="https://github.com/tiangolo/fastapi/actions?query=workflow%3ATest+event%3Apush+branch%3Amaster" target="_blank">
-    <img src="https://github.com/tiangolo/fastapi/workflows/Test/badge.svg?event=push&branch=master" alt="Test">
-</a>
-<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/tiangolo/fastapi" target="_blank">
-    <img src="https://coverage-badge.samuelcolvin.workers.dev/tiangolo/fastapi.svg" alt="Coverage">
-</a> -->
-<!-- <a href="https://pypi.org/project/fastapi" target="_blank">
-    <img src="https://img.shields.io/pypi/v/fastapi?color=%2334D058&label=pypi%20package" alt="Package version"> -->
-<!-- </a>
-<a href="https://pypi.org/project/fastapi" target="_blank">
-    <img src="https://img.shields.io/pypi/pyversions/fastapi.svg?color=%2334D058" alt="Supported Python versions">
-</a> -->
-
 <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/mishagrol/pyRothC?style=social">
 
 <a href="https://github.com/mishagrol/pyRothC/issues" target="_blank">
@@ -19,13 +7,11 @@
 </a>
 
 
-
 <a href="https://github.com/mishagrol/pyRothC/blob/main/LICENSE" target="_blank">
     <img src="https://img.shields.io/github/license/mishagrol/pyRothC" alt="License">
 </a>
 </p>
 
-## pyRothC
 
 <p align="left">
     <em>Python version of The Rothamsted carbon model (RothC) 26.3.</em>
@@ -39,7 +25,6 @@ ________
 ---
 
 pyRothc is a Python version of The Rothamsted carbon model (RothC) 26.3.
-
 
 RothC is a model for the turnover of organic carbon in non-waterlogged topsoil that allows for the effects of soil type, temperature, soil moisture and plant cover on the turnover process.
 
@@ -69,39 +54,36 @@ $ pip install pyRothC
 
 
 ```Python
+Temp=np.array([-0.4, 0.3, 4.2, 8.3, 13.0, 15.9,18.0, 
+                17.5, 13.4, 8.7, 3.9,  0.6])
+Precip=np.array([49, 39, 44, 41, 61, 58,
+                71, 58, 51,48, 50, 58])
+Evp=np.array([12, 18, 35, 58, 82, 90,
+            97, 84, 54, 31,14, 10])
 
-Temp=np.array([-0.4, 0.3, 4.2, 8.3, 13.0, 15.9,18.
-                0, 17.5, 13.4, 8.7, 3.9,  0.6])
-Precip=np.array([49, 39, 44, 41, 61, 58, 71, 58, 
-                51,48, 50, 58])
-Evp=np.array([12, 18, 35, 58, 82, 90, 97, 84, 54,
-                31,14, 10])
-
-soil_thick=25  #Soil thickness (organic layer 
-                #topsoil), in cm
+soil_thick=25  #Soil thickness (organic layer topsoil), in cm
 SOC=69.7       #Soil organic carbon in Mg/ha 
 clay=48        #Percent clay
-Cinputs=2.7   #Annual C inputs to soil in Mg/ha/yr
+input_carbon=2.7   #Annual C inputs to soil in Mg/ha/yr
 
+IOM=0.049*SOC**(1.139) # Falloon et al. (1998)
 
 rothC = RothC(temperature=Temp, 
              precip=Precip, 
              evaporation=Evp,
              clay = 48,
-             input_carbon=Cinputs,
+             input_carbon=input_carbon,
              pE=1.0,
-             C0=np.array([0, 0, 0, 0, 2.7]))
+             C0=np.array([0, 0, 0, 0, IOM]))
 
 df = rothC.compute()
-
+df.index = rothC.t
 fig, ax = plt.subplots(1,1,figsize=(6,4))
 df.plot(ax=ax)
 ax.set_ylabel('C stocks (Mg/ha)')
+ax.set_ylabel('Years')
 plt.show()
-
-
 ```
-
 
 ## Structure of the RothC model
 
@@ -109,7 +91,7 @@ plt.show()
 
 
 <p align="center">
-  <a href="RothC"><img src="./plots/Logo.svg" alt="FastAPI"></a>
+  <a href="RothC"><img src="./plots/Logo.svg" alt="RothC"></a>
 </p>
 
 ### Equations
