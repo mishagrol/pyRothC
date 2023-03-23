@@ -52,8 +52,18 @@ $ pip install pyRothC
 
 ## Example
 
+Below is an example of how the `RothC` class should be used. It needs 
+[matplotlib](https://matplotlib.org/stable/users/installing/index.html) library to be installed in
+order to draw the graphs.
+
 
 ```Python
+import numpy as np
+import matplotlib.pyplot as plt
+
+from pyRothC.RothC import RothC
+
+
 Temp=np.array([-0.4, 0.3, 4.2, 8.3, 13.0, 15.9,18.0, 
                 17.5, 13.4, 8.7, 3.9,  0.6])
 Precip=np.array([49, 39, 44, 41, 61, 58,
@@ -83,6 +93,23 @@ df.plot(ax=ax)
 ax.set_ylabel('C stocks (Mg/ha)')
 ax.set_ylabel('Years')
 plt.show()
+```
+
+## Testing
+
+If you need to run the test suite, first install the package in "editable" mode with the `test`
+optional dependencies:
+
+```bash
+git clone git@github.com:mishagrol/pyRothC.git
+cd pyRothC
+pip install -e ".[test]"
+```
+
+Now you can run the tests by simply running this command:
+
+```bash
+pytest tests
 ```
 
 ## Structure of the RothC model
