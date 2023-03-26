@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import odeint
 from scipy.interpolate import interp1d
-import matplotlib.pyplot as plt
 
 
 class RothC:
@@ -35,11 +34,11 @@ class RothC:
         """Python version of The Rothamsted carbon model (RothC) 26.3.
 
         Args:
-            temperature (Union[list, np.ndarray]): Values of montly temperature
+            temperature (Union[list, np.ndarray]): Values of monthly temperature
                                                 for which the effects on decomposition rates are calculated (°C).
-            precip (Union[list, np.ndarray]): Values of montly precipitaion
+            precip (Union[list, np.ndarray]): Values of monthly precipitaion
                                                 for which the effects on decomposition rates are calculated (mm).
-            evaporation (Union[list, np.ndarray]): Values of montly open pan evaporation or evapotranspiration (mm).
+            evaporation (Union[list, np.ndarray]): Values of monthly open pan evaporation or evapotranspiration (mm).
             years (int, optional): Number of years to run RothC model. Defaults to 500.
             ks (np.ndarray, optional): A vector of length 5 containing the values of the
                                     decomposition rates for the different pools.
@@ -100,13 +99,13 @@ class RothC:
         """Compute decomposition impact of Temperature and Moisture (fT * fW)
 
         Args:
-            temperature (np.ndarray): Values of montly temperature
+            temperature (np.ndarray): Values of monthly temperature
                                     for which the effects on decomposition
                                     rates are calculated (°C).
-            precip (np.ndarray): Values of montly precipitaion
+            precip (np.ndarray): Values of monthly precipitaion
                                 for which the effects on
                                 decomposition rates are calculated (mm).
-            evaporation (np.ndarray): Values of montly open pan evaporation or evapotranspiration (mm).
+            evaporation (np.ndarray): Values of monthly open pan evaporation or evapotranspiration (mm).
 
         Returns:
             np.ndarray: Effects of moisture and temperature
@@ -132,10 +131,10 @@ class RothC:
         """Compute Temperature factor
 
         Args:
-            temperature (np.ndarray): montly mean temperature
+            temperature (np.ndarray): monthly mean temperature
 
         Returns:
-            list: montly temperature factor
+            list: monthly temperature factor
         """
         stress_coef = []
         for x in temperature:
@@ -157,10 +156,10 @@ class RothC:
         """Compute Soil moisture factor
 
         Args:
-            precip (np.ndarray): Values of montly precipitaion
+            precip (np.ndarray): Values of monthly precipitaion
                                 for which the effects on 
                                 decomposition rates are calculated (mm).
-            evaporation (np.ndarray): Values of montly open pan evaporation or evapotranspiration (mm).
+            evaporation (np.ndarray): Values of monthly open pan evaporation or evapotranspiration (mm).
             soil_thickness (float): Soil thickness in cm. Default for Rothamsted is 23 cm.
             pE (float, optional): Evaporation coefficient.
                                 If open pan evaporation is used pE=0.75.
@@ -176,8 +175,8 @@ class RothC:
 
         Returns:
             Tuple[np.ndarray, np.ndarray]: _description_
-        """ """"""
-        # compute maximum soil moisture defficit
+        """
+        # compute maximum soil moisture deficit
         if precip.shape != evaporation.shape:
             raise ValueError("Precip and evaporation have different shape")
         #     max_smd = -(20.0 + 1.3 * clay - 0.01 * clay**2)
@@ -251,50 +250,4 @@ class RothC:
 
     def compute(self):
         y1 = odeint(self.dCdt, self.C0, t=self.t, rtol=0.01, atol=0.01)
-        self.df = pd.DataFrame(y1, columns=self.ks_pulls)
-        return self.df
-
-    def plot(self):
-        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        self.df.plot(ax=ax)
-        ax.set_ylabel("C stocks (Mg/ha)")
-        plt.show()
-
-
-def test():
-    """Test pyRothC model"""
-
-    Temp = np.array([-0.4, 0.3, 4.2, 8.3, 13.0, 15.9, 18.0, 17.5, 13.4, 8.7, 3.9, 0.6])
-    Precip = np.array([49, 39, 44, 41, 61, 58, 71, 58, 51, 48, 50, 58])
-    Evp = np.array([12, 18, 35, 58, 82, 90, 97, 84, 54, 31, 14, 10])
-
-    soil_thick = 25  # Soil thickness (organic layer topsoil), in cm
-    SOC = 69.7  # Soil organic carbon in Mg/ha
-    clay = 48  # Percent clay
-    Cinputs = 2.7  # Annual C inputs to soil in Mg/ha/yr
-
-    rothC = RothC(
-        temperature=Temp,
-        precip=Precip,
-        evaporation=Evp,
-        clay=48,
-        input_carbon=Cinputs,
-        pE=1.0,
-        C0=np.array([0, 0, 0, 0, 2.7]),
-    )
-
-    y1 = odeint(rothC.dCdt, rothC.C0, t=rothC.t, rtol=0.01, atol=0.01)
-    df = pd.DataFrame(y1, columns=rothC.ks_pulls)
-    print("test passed - ✅")
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-    df.plot(ax=ax)
-    ax.set_ylabel("C stocks (Mg/ha)")
-    plt.show()
-
-
-if __name__ == "__main__":
-    try:
-        test()
-    except Exception as e:
-        print(e)
-        print("test not passed - ❌")
+        return pd.DataFrame(y1, columns=self.ks_pulls)
