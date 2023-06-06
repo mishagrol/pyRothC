@@ -8,3 +8,9 @@ import pytest
 def results_2years():
     with open(Path(__file__).parent.absolute() / "data" / "2years_results.csv", "r") as file:
         return pandas.read_csv(filepath_or_buffer=file, index_col=False)
+
+
+@pytest.fixture
+def results_9years():
+    with open(Path(__file__).parent.absolute() / "data" / "9years_results.csv", "r") as file:
+        return pandas.read_csv(filepath_or_buffer=file, index_col=False)
