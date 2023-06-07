@@ -65,7 +65,7 @@ class RothC:
             ValueError: _description_
         """
         self.years = years
-        self.t = np.arange(1 / 12, years, step=1 / 12)
+        self.t = np.linspace(1 / 12, years, num=years * 12)
         self.ks_pulls = ["DPM", "RPM", "BIO", "HUM", "IOM"]
         if len(ks) != 5:
             raise ValueError("ks must be of length = 5")
