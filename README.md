@@ -148,9 +148,16 @@ C_5
 &
 \end{aligned}
 $$
+
 ## Optional Dependencies
 
 Matplotlib
+
+## How to publish package to pypi
+
+`python3 -m build`
+
+`python3 -m twine upload dist/pyrothc-<VERSION>*`
 
 ## License
 
