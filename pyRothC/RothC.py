@@ -75,7 +75,7 @@ class RothC:
 
         @staticmethod
         def validate_C0(C0: np.ndarray):
-            if len(C0) != RothC.C0_LENGTH:
+            if len(C0) != RothC.C0_LEN  GTH:
                 raise ValueError("the vector with initial conditions must be of length = 5")
 
     def _get_stress_parameters(
@@ -142,7 +142,7 @@ class RothC:
         input_IOM = 0
         return np.array([input_DPM, input_RPM, input_BIO, input_HUM, input_IOM])
 
-    def dCdt(self, C, t):
+    def dCdt(self, C, t, input_carbon: Union[float, np.ndarray], farmyard_manure: Union[float, np.ndarray], DR: Union[float, np.ndarray]):
         self._t.append(t)
         ks = self.ks
         x = self.DC_DT_CONSTANTS[0] * (self.DC_DT_CONSTANTS[1] + self.DC_DT_CONSTANTS[2] * np.exp(-self.DC_DT_CONSTANTS[3] * self.clay))
@@ -153,9 +153,7 @@ class RothC:
         A = np.diag(-ks)
         A[2] = A[2] + ai3
         A[3] = A[3] + ai4
-        in_flux = self.get_input_flux(
-            self.input_carbon, self.farmyard_manure, self.DR  # type: ignore
-        )  # TO-DO: add not only scalar
+        in_flux = self.get_input_flux(input_carbon, farmyard_manure, DR)
         xi_f = self.xi_func(t)
         self._current_XI.append(xi_f)
         C_next = in_flux + (A * xi_f).dot(C)
