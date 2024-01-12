@@ -1,3 +1,11 @@
+"""
+    Python version of The Rothamsted carbon model (RothC) 26.3.
+    RothC is a model for the turnover of organic carbon in non-waterlogged topsoil that allows 
+    for the effects of soil type, temperature, soil moisture and plant cover on the turnover process.
+
+    Author: Misha Grol - grol81@mail.ru
+"""
+
 from typing import Union, Tuple
 import numpy as np
 import pandas as pd
@@ -40,10 +48,42 @@ class RothC:
         pE: float = PE_DEFAULT,
         bare: bool = BARE_DEFAULT,
     ):
+            """
+            Python version of The Rothamsted carbon model (RothC) 26.3.
 
+        Args:
+            temperature (Union[list, np.ndarray]): Values of monthly temperature
+                                                for which the effects on decomposition rates are calculated (°C).
+            precip (Union[list, np.ndarray]): Values of monthly precipitaion
+                                                for which the effects on decomposition rates are calculated (mm).
+            evaporation (Union[list, np.ndarray]): Values of monthly open pan evaporation or evapotranspiration (mm).
+            years (int, optional): Number of years to run RothC model. Defaults to 500.
+            ks (np.ndarray, optional): A vector of length 5 containing the values of the
+                                    decomposition rates for the different pools.
+                                    Defaults to np.array([10, 0.3, 0.66, 0.02, 0]).
+            C0 (np.ndarray, optional): A numpy of length 5 containing the initial amount
+                                        of carbon for the 5 pools. Defaults to np.array([0, 0, 0, 0, 2.7]).
+            input_carbon (Union[float, np.ndarray], optional): A scalar or np.array
+                                                                the amount of litter inputs by time. Defaults to 1.7.
+            farmyard_manure (Union[float, np.ndarray], optional): A scalar or np.array object specifying the amount
+                                                                 of Farm Yard Manure inputs by time. Defaults to 0.
+            clay (float, optional): Percent clay in mineral soil. Defaults to 23.4.
+            soil_thickness (float, optional): Soil thickness im cm. Defaults to 25.0.
+            DR (float, optional): A scalar representing the ratio of decomposable plant material
+                                to resistant plant material (DPM/RPM). Defaults to 1.44.
+            pE (float, optional): Evaporation coefficient.
+                                If open pan evaporation is used pE=0.75.
+                                If Potential evaporation is used, pE=1.0.
+            bare (bool, optional): Logical. Under bare soil conditions, bare=True.
+                                Default is set under vegetated soil. Defaults to False.
+            solver (str, optional): Solver - Not implemented yet. Defaults to "euler".
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+        """
         self.validate_ks(ks)
         self.validate_C0(C0)
-
         self.years = years
         self.t = np.linspace(1 / 12, years, num=years * 12)
         self.ks_pulls = ["DPM", "RPM", "BIO", "HUM", "IOM"]
@@ -68,19 +108,35 @@ class RothC:
         )
         self._current_XI = []
     
-        @staticmethod
-        def validate_ks(ks: np.ndarray):
-            if len(ks) != RothC.KS_LENGTH:
-                raise ValueError("ks must be of length = 5")
+    @staticmethod
+    def validate_ks(ks: np.ndarray):
+        if len(ks) != RothC.KS_LENGTH:
+            raise ValueError("ks must be of length = 5")
 
-        @staticmethod
-        def validate_C0(C0: np.ndarray):
-            if len(C0) != RothC.C0_LEN  GTH:
-                raise ValueError("the vector with initial conditions must be of length = 5")
+    @staticmethod
+    def validate_C0(C0: np.ndarray):
+        if len(C0) != RothC.C0_LENGTH:
+            raise ValueError("the vector with initial conditions must be of length = 5")
 
     def _get_stress_parameters(
         self, temperature: np.ndarray, precip: np.ndarray, evaporation: np.ndarray
     ) -> np.ndarray:
+        """
+            Compute decomposition impact of Temperature and Moisture (fT * fW)
+
+        Args:
+            temperature (np.ndarray): Values of monthly temperature
+                                    for which the effects on decomposition
+                                    rates are calculated (°C).
+            precip (np.ndarray): Values of monthly precipitaion
+                                for which the effects on
+                                decomposition rates are calculated (mm).
+            evaporation (np.ndarray): Values of monthly open pan evaporation or evapotranspiration (mm).
+
+        Returns:
+            np.ndarray: Effects of moisture and temperature
+                        on decomposition rates according to the RothC model.
+        """
 
         stress_temp = self.fT(temperature=temperature)
         acc_TSMD, b = self.fW(
@@ -112,6 +168,31 @@ class RothC:
         clay: float = 20.0,
         bare: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
+        
+        """
+            Compute Soil moisture factor
+
+        Args:
+            precip (np.ndarray): Values of monthly precipitaion
+                                for which the effects on 
+                                decomposition rates are calculated (mm).
+            evaporation (np.ndarray): Values of monthly open pan evaporation or evapotranspiration (mm).
+            soil_thickness (float): Soil thickness in cm. Default for Rothamsted is 23 cm.
+            pE (float, optional): Evaporation coefficient.
+                                If open pan evaporation is used pE=0.75.
+                                If Potential evaporation is used, pE=1.0.. Defaults to 0.75.
+            clay (float, optional): Percent clay in mineral soil. Defaults to 23.4.
+                                 Defaults to 20.0.
+            bare (bool, optional): Logical. Under bare soil conditions, bare=True.
+                                Default is set under vegetated soil.
+                                Defaults to False.
+
+        Raises:
+            ValueError: Precip and evaporation have different shape
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: _description_
+        """
 
         # compute maximum soil moisture deficit
         if precip.shape != evaporation.shape:
@@ -133,6 +214,21 @@ class RothC:
     def get_input_flux(
         self, input_carbon: float, farmyard_manure: float = 0, DR: float = 1.44
     ) -> np.ndarray:
+        """
+            Get amount of litter inputs
+
+        Args:
+            input_carbon (float): A scalar or np.array
+                                the amount of litter inputs by time. Defaults to 1.7.
+            farmyard_manure (float, optional): A scalar or np.array object specifying the amount
+                                                of Farm Yard Manure inputs by time.
+                                                Defaults to 0.
+            DR (float, optional): A scalar representing the ratio of decomposable plant material
+                                to resistant plant material (DPM/RPM). Defaults to 1.44.
+
+        Returns:
+            np.ndarray: input_DPM, input_RPM, input_BIO, input_HUM, input_IOM
+        """
 
         gamma = DR / (1 + DR)
         input_DPM = input_carbon * gamma + (farmyard_manure * 0.49)
