@@ -48,7 +48,7 @@ class RothC:
         pE: float = PE_DEFAULT,
         bare: bool = BARE_DEFAULT,
     ):
-            """
+        """
             Python version of The Rothamsted carbon model (RothC) 26.3.
 
         Args:
@@ -66,7 +66,7 @@ class RothC:
             input_carbon (Union[float, np.ndarray], optional): A scalar or np.array
                                                                 the amount of litter inputs by time. Defaults to 1.7.
             farmyard_manure (Union[float, np.ndarray], optional): A scalar or np.array object specifying the amount
-                                                                 of Farm Yard Manure inputs by time. Defaults to 0.
+                                                                    of Farm Yard Manure inputs by time. Defaults to 0.
             clay (float, optional): Percent clay in mineral soil. Defaults to 23.4.
             soil_thickness (float, optional): Soil thickness im cm. Defaults to 25.0.
             DR (float, optional): A scalar representing the ratio of decomposable plant material
@@ -82,31 +82,31 @@ class RothC:
             ValueError: _description_
             ValueError: _description_
         """
-        self.validate_ks(ks)
-        self.validate_C0(C0)
-        self.years = years
-        self.t = np.linspace(1 / 12, years, num=years * 12)
-        self.ks_pulls = ["DPM", "RPM", "BIO", "HUM", "IOM"]
-        self.ks = ks
-        self.C0 = C0
-        self.farmyard_manure = farmyard_manure
-        self.input_carbon = input_carbon
-        self.clay = clay
-        self.DR = DR
-        self.pE = pE
-        self.bare = bare
-        self.soil_thickness = soil_thickness
-        self._t = []
-        self.xi = self._get_stress_parameters(
-            temperature=np.array(temperature),
-            precip=np.array(precip),
-            evaporation=np.array(evaporation),
-        )
+    self.validate_ks(ks)
+    self.validate_C0(C0)
+    self.years = years
+    self.t = np.linspace(1 / 12, years, num=years * 12)
+    self.ks_pulls = ["DPM", "RPM", "BIO", "HUM", "IOM"]
+    self.ks = ks
+    self.C0 = C0
+    self.farmyard_manure = farmyard_manure
+    self.input_carbon = input_carbon
+    self.clay = clay
+    self.DR = DR
+    self.pE = pE
+    self.bare = bare
+    self.soil_thickness = soil_thickness
+    self._t = []
+    self.xi = self._get_stress_parameters(
+        temperature=np.array(temperature),
+        precip=np.array(precip),
+        evaporation=np.array(evaporation),
+    )
 
-        self.xi_func = interp1d(
-            self.t, self.xi, fill_value="extrapolate"  # type: ignore
-        )
-        self._current_XI = []
+    self.xi_func = interp1d(
+        self.t, self.xi, fill_value="extrapolate"  # type: ignore
+    )
+    self._current_XI = []
     
     @staticmethod
     def validate_ks(ks: np.ndarray):
@@ -239,6 +239,27 @@ class RothC:
         return np.array([input_DPM, input_RPM, input_BIO, input_HUM, input_IOM])
 
     def dCdt(self, C, t, input_carbon: Union[float, np.ndarray], farmyard_manure: Union[float, np.ndarray], DR: Union[float, np.ndarray]):
+        """
+        Calculates the rate of change of soil carbon over time.
+
+        This function is invoked by the ODE integration function to compute changes in carbon
+        concentrations across various pools in the RothC model over time.
+
+        Args:
+            C (np.ndarray): An array representing the current concentrations of carbon in different pools.
+            t (float): The current time in the simulation.
+            input_carbon (Union[float, np.ndarray]): The amount of incoming carbon, either as a fixed value or a time-varying array.
+            farmyard_manure (Union[float, np.ndarray]): The amount of farmyard manure applied, again either as a fixed value or a time-varying array.
+            DR (Union[float, np.ndarray]): The decomposition rate, representing the ratio of decomposable to resistant plant material.
+
+        Returns:
+            np.ndarray: An array representing the rate of change of carbon in each pool at time `t`.
+
+        This function uses constants defined in the class to calculate the decomposition coefficients (B and H) and
+        then applies these coefficients along with the decomposition rates (`ks`) to compute changes in carbon
+        concentrations. It also calculates the incoming carbon fluxes and adjusts them based on environmental stress
+        factors calculated by `xi_func`.
+        """
         self._t.append(t)
         ks = self.ks
         x = self.DC_DT_CONSTANTS[0] * (self.DC_DT_CONSTANTS[1] + self.DC_DT_CONSTANTS[2] * np.exp(-self.DC_DT_CONSTANTS[3] * self.clay))
