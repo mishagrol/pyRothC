@@ -19,6 +19,10 @@ class RothC:
     DR_DEFAULT = 1.44
     PE_DEFAULT = 0.75
     BARE_DEFAULT = False
+    STRESS_COEF_CONSTANTS = (47.9, 106, 18.3)
+    MAX_SMD_CONSTANTS = (20.0, 1.3, 0.01, 23)
+    B_VALUE_CONSTANTS = (0.2, 0.8, 0.444)
+    DC_DT_CONSTANTS = (1.67, 1.85, 1.60, 0.0786, 0.46, 0.54)
 
     def __init__(
         self,
