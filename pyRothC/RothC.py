@@ -82,31 +82,31 @@ class RothC:
             ValueError: _description_
             ValueError: _description_
         """
-    self.validate_ks(ks)
-    self.validate_C0(C0)
-    self.years = years
-    self.t = np.linspace(1 / 12, years, num=years * 12)
-    self.ks_pulls = ["DPM", "RPM", "BIO", "HUM", "IOM"]
-    self.ks = ks
-    self.C0 = C0
-    self.farmyard_manure = farmyard_manure
-    self.input_carbon = input_carbon
-    self.clay = clay
-    self.DR = DR
-    self.pE = pE
-    self.bare = bare
-    self.soil_thickness = soil_thickness
-    self._t = []
-    self.xi = self._get_stress_parameters(
+        self.validate_ks(ks)
+        self.validate_C0(C0)
+        self.years = years
+        self.t = np.linspace(1 / 12, years, num=years * 12)
+        self.ks_pulls = ["DPM", "RPM", "BIO", "HUM", "IOM"]
+        self.ks = ks
+        self.C0 = C0
+        self.farmyard_manure = farmyard_manure
+        self.input_carbon = input_carbon
+        self.clay = clay
+        self.DR = DR
+        self.pE = pE
+        self.bare = bare
+        self.soil_thickness = soil_thickness
+        self._t = []
+        self.xi = self._get_stress_parameters(
         temperature=np.array(temperature),
         precip=np.array(precip),
         evaporation=np.array(evaporation),
     )
 
-    self.xi_func = interp1d(
-        self.t, self.xi, fill_value="extrapolate"  # type: ignore
-    )
-    self._current_XI = []
+        self.xi_func = interp1d(
+            self.t, self.xi, fill_value="extrapolate"  # type: ignore
+        )
+        self._current_XI = []
     
     @staticmethod
     def validate_ks(ks: np.ndarray):
@@ -182,7 +182,7 @@ class RothC:
                                 If open pan evaporation is used pE=0.75.
                                 If Potential evaporation is used, pE=1.0.. Defaults to 0.75.
             clay (float, optional): Percent clay in mineral soil. Defaults to 23.4.
-                                 Defaults to 20.0.
+                                Defaults to 20.0.
             bare (bool, optional): Logical. Under bare soil conditions, bare=True.
                                 Default is set under vegetated soil.
                                 Defaults to False.
@@ -277,5 +277,5 @@ class RothC:
         return C_next
 
     def compute(self):
-        y1 = odeint(self.dCdt, self.C0, t=self.t, rtol=0.01, atol=0.01)
+        y1 = odeint(self.dCdt, self.C0, t=self.t, args=(self.input_carbon, self.farmyard_manure, self.DR), rtol=0.01, atol=0.01)
         return pd.DataFrame(y1, columns=self.ks_pulls)
