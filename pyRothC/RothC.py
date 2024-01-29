@@ -28,7 +28,7 @@ class RothC:
         soil_thickness: float = 25.0,
         DR: float = 1.44,  # ratio DPM/RPM
         pE: float = 0.75,
-        bare: bool = False,
+        bare: np.ndarray = np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0]),
         solver: str = "euler",
     ):
         """Python version of The Rothamsted carbon model (RothC) 26.3.
@@ -56,8 +56,8 @@ class RothC:
             pE (float, optional): Evaporation coefficient.
                                 If open pan evaporation is used pE=0.75.
                                 If Potential evaporation is used, pE=1.0.
-            bare (bool, optional): Logical. Under bare soil conditions, bare=True.
-                                Default is set under vegetated soil. Defaults to False.
+            bare (np.ndarray, optional): Array. Under bare soil conditions, bare is 1, else is 0.
+                                Default is set [0,0,0,1,1,1,1,1,1,0,0,0], means bare for summer month.
             solver (str, optional): Solver - Not implemented yet. Defaults to "euler".
 
         Raises:
@@ -79,9 +79,12 @@ class RothC:
         self.DR = DR
         self.pE = pE
         self.bare = bare
+        assert len(self.bare) == 12
+        self.MONTHS_IN_YEAR = 12
+
         self.soil_thickness = soil_thickness
         self.solver = solver
-        self._t = []
+        self._t: list = []
         self.xi = self._get_stress_parameters(
             temperature=np.array(temperature),
             precip=np.array(precip),
@@ -91,7 +94,7 @@ class RothC:
         self.xi_func = interp1d(
             self.t, self.xi, fill_value="extrapolate"  # type: ignore
         )
-        self._current_XI = []
+        self._current_XI: list = []
 
     def _get_stress_parameters(
         self, temperature: np.ndarray, precip: np.ndarray, evaporation: np.ndarray
@@ -123,7 +126,7 @@ class RothC:
         )
         self._stress_temp = stress_temp
         self._b = b
-        xi = stress_temp * b
+        xi = np.array(stress_temp * b)
         xi = np.tile(xi, self.years)
         return xi
 
@@ -149,15 +152,15 @@ class RothC:
         precip: np.ndarray,
         evaporation: np.ndarray,
         soil_thickness: float,
+        bare: np.ndarray,
         pE: float = 0.75,
         clay: float = 20.0,
-        bare: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Compute Soil moisture factor
 
         Args:
             precip (np.ndarray): Values of monthly precipitaion
-                                for which the effects on 
+                                for which the effects on
                                 decomposition rates are calculated (mm).
             evaporation (np.ndarray): Values of monthly open pan evaporation or evapotranspiration (mm).
             soil_thickness (float): Soil thickness in cm. Default for Rothamsted is 23 cm.
@@ -166,9 +169,8 @@ class RothC:
                                 If Potential evaporation is used, pE=1.0.. Defaults to 0.75.
             clay (float, optional): Percent clay in mineral soil. Defaults to 23.4.
                                  Defaults to 20.0.
-            bare (bool, optional): Logical. Under bare soil conditions, bare=True.
-                                Default is set under vegetated soil.
-                                Defaults to False.
+            bare (np.ndarray, optional): Array. Under bare soil conditions, bare is 1, else is 0.
+                                Default is set [0,0,0,1,1,1,1,1,1,0,0,0], means bare for summer month.
 
         Raises:
             ValueError: Precip and evaporation have different shape
@@ -180,11 +182,12 @@ class RothC:
         if precip.shape != evaporation.shape:
             raise ValueError("Precip and evaporation have different shape")
         #     max_smd = -(20.0 + 1.3 * clay - 0.01 * clay**2)
-        max_smd = -(20.0 + 1.3 * clay - 0.01 * clay**2) * (
-            soil_thickness / 23
+        max_smd = np.array(
+            -(20.0 + 1.3 * clay - 0.01 * clay**2) * (soil_thickness / 23)
         )  # TO-DO Verify this soil_thik / 23
-        if bare:
-            max_smd = max_smd / 1.8
+        max_smd = np.full(self.MONTHS_IN_YEAR, max_smd)
+        mask = bare.astype(bool)
+        max_smd[mask] /= 1.8
         M = precip - evaporation * pE
         acc_TSMD = np.zeros(shape=(len(M)))
         if M[0] > 0:
@@ -251,3 +254,24 @@ class RothC:
     def compute(self):
         y1 = odeint(self.dCdt, self.C0, t=self.t, rtol=0.01, atol=0.01)
         return pd.DataFrame(y1, columns=self.ks_pulls)
+
+
+if __name__ == "__main__":
+    temperature = np.array(
+        [-0.4, 0.3, 4.2, 8.3, 13.0, 15.9, 18.0, 17.5, 13.4, 8.7, 3.9, 0.6]
+    )
+    precipitation = np.array([49, 39, 44, 41, 61, 58, 71, 58, 51, 48, 50, 58])
+    evaporation = np.array([12, 18, 35, 58, 82, 90, 97, 84, 54, 31, 14, 10])
+    inert_organic_matter = 0.049 * 69.7**1.139
+
+    rothc = RothC(
+        temperature=temperature,
+        precip=precipitation,
+        evaporation=evaporation,
+        years=2,  # Test the results for 2 years for simplicity.
+        clay=48,
+        input_carbon=2.7,
+        pE=1.0,
+        C0=np.array([0, 0, 0, 0, inert_organic_matter]),
+    )
+    dataframe = rothc.compute()
