@@ -26,11 +26,12 @@ class RothC:
     SOIL_THICKNESS_DEFAULT = 25.0
     DR_DEFAULT = 1.44
     PE_DEFAULT = 0.75
-    BARE_DEFAULT = False
+    BARE_DEFAULT = np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0])
     STRESS_COEF_CONSTANTS = (47.9, 106, 18.3)
     MAX_SMD_CONSTANTS = (20.0, 1.3, 0.01, 23)
     B_VALUE_CONSTANTS = (0.2, 0.8, 0.444)
     DC_DT_CONSTANTS = (1.67, 1.85, 1.60, 0.0786, 0.46, 0.54)
+    MONTHS_IN_YEAR = 12
 
     def __init__(
         self,
@@ -40,13 +41,13 @@ class RothC:
         years: int = YEARS,
         ks: np.ndarray = KS_DEFAULT,
         C0: np.ndarray = C0_DEFAULT,
-        input_carbon: float = INPUT_CARBON_DEFAULT,
-        farmyard_manure: float = FARMYARD_MANURE_DEFAULT,
+        input_carbon: Union[float, np.ndarray] = INPUT_CARBON_DEFAULT,
+        farmyard_manure: Union[float, np.ndarray] = FARMYARD_MANURE_DEFAULT,
         clay: float = CLAY_DEFAULT,
         soil_thickness: float = SOIL_THICKNESS_DEFAULT,
         DR: float = DR_DEFAULT,
         pE: float = PE_DEFAULT,
-        bare: bool = BARE_DEFAULT,
+        bare: np.ndarray = BARE_DEFAULT,
         log_level: str = "ERROR",
     ):
         """
@@ -64,9 +65,9 @@ class RothC:
                                     Defaults to np.array([10, 0.3, 0.66, 0.02, 0]).
             C0 (np.ndarray, optional): A numpy of length 5 containing the initial amount
                                         of carbon for the 5 pools. Defaults to np.array([0, 0, 0, 0, 2.7]).
-            input_carbon (float, optional): A scalar or np.array
+            input_carbon (Union[float, np.ndarray], optional): A scalar or np.array
                                                                 the amount of litter inputs by time. Defaults to 1.7.
-            farmyard_manure (float, optional): A scalar or np.array object specifying the amount
+            farmyard_manure (Union[float, np.ndarray], optional): A scalar or np.array object specifying the amount
                                                                     of Farm Yard Manure inputs by time. Defaults to 0.
             clay (float, optional): Percent clay in mineral soil. Defaults to 23.4.
             soil_thickness (float, optional): Soil thickness im cm. Defaults to 25.0.
@@ -75,8 +76,8 @@ class RothC:
             pE (float, optional): Evaporation coefficient.
                                 If open pan evaporation is used pE=0.75.
                                 If Potential evaporation is used, pE=1.0.
-            bare (bool, optional): Logical. Under bare soil conditions, bare=True.
-                                Default is set under vegetated soil. Defaults to False.
+            bare (np.ndarray, optional): Array. Under bare soil conditions, bare is 1, else is 0.
+                                Default is set [0,0,0,1,1,1,1,1,1,0,0,0], means bare for warm period.
             solver (str, optional): Solver - Not implemented yet. Defaults to "euler".
 
         Raises:
@@ -194,9 +195,9 @@ class RothC:
                                 If Potential evaporation is used, pE=1.0.. Defaults to 0.75.
             clay (float, optional): Percent clay in mineral soil. Defaults to 23.4.
                                  Defaults to 20.0.
-            bare (bool, optional): Logical. Under bare soil conditions, bare=True.
-                                Default is set under vegetated soil.
-                                Defaults to False.
+            bare (np.ndarray, optional): Array. Under bare soil conditions, bare is 1, else is 0.
+                                Default is set [0,0,0,1,1,1,1,1,1,0,0,0], means bare for summer month.
+
 
         Raises:
             ValueError: Precip and evaporation have different shape
@@ -209,21 +210,27 @@ class RothC:
         if precip.shape != evaporation.shape:
             raise ValueError("Precip and evaporation arrays must have the same shape")
         # From paper: -(20 + 1.3 * Clay - 0.01 * clay **2) * depth / 23
-        max_smd = -(
+        max_smd_value = -(
             self.MAX_SMD_CONSTANTS[0]
             + self.MAX_SMD_CONSTANTS[1] * self.clay
             - self.MAX_SMD_CONSTANTS[2] * self.clay**2
         ) * (soil_thickness / self.MAX_SMD_CONSTANTS[3])
         # From paper: Mbare = M / 1.8
-        if self.bare:
-            max_smd /= 1.8
+
+        max_smd = np.full(self.MONTHS_IN_YEAR, max_smd_value)
+        mask = self.bare.astype(bool)
+        max_smd[mask] /= 1.8
+        # max_smd = max_smd_value
+        # if self.bare:
+        #     max_smd /= 1.8
 
         M = precip - evaporation * self.pE
         acc_TSMD = np.zeros_like(M, dtype=np.float64)
         acc_TSMD[0] = min(M[0], 0)
         for i in range(1, len(M)):
             acc_TSMD[i] = min(acc_TSMD[i - 1] + M[i], 0)
-            acc_TSMD[i] = max(acc_TSMD[i], max_smd)
+            acc_TSMD[i] = max(acc_TSMD[i], max_smd[i])
+            # acc_TSMD[i] = max(acc_TSMD[i], max_smd)
 
         # from paper : b  =  0.2 + 0.8 * (M - AccM ) / (M - Mb)
         b = self.B_VALUE_CONSTANTS[0] + self.B_VALUE_CONSTANTS[1] * (
