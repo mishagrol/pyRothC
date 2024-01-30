@@ -11,10 +11,10 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import odeint
 from scipy.interpolate import interp1d
+import logging
 
 
 class RothC:
-
     KS_LENGTH = 5
     C0_LENGTH = 5
     YEARS = 500
@@ -40,13 +40,14 @@ class RothC:
         years: int = YEARS,
         ks: np.ndarray = KS_DEFAULT,
         C0: np.ndarray = C0_DEFAULT,
-        input_carbon: Union[float, np.ndarray] = INPUT_CARBON_DEFAULT,
-        farmyard_manure: Union[float, np.ndarray] = FARMYARD_MANURE_DEFAULT,
+        input_carbon: float = INPUT_CARBON_DEFAULT,
+        farmyard_manure: float = FARMYARD_MANURE_DEFAULT,
         clay: float = CLAY_DEFAULT,
         soil_thickness: float = SOIL_THICKNESS_DEFAULT,
         DR: float = DR_DEFAULT,
         pE: float = PE_DEFAULT,
         bare: bool = BARE_DEFAULT,
+        log_level: str = "ERROR",
     ):
         """
             Python version of The Rothamsted carbon model (RothC) 26.3.
@@ -63,9 +64,9 @@ class RothC:
                                     Defaults to np.array([10, 0.3, 0.66, 0.02, 0]).
             C0 (np.ndarray, optional): A numpy of length 5 containing the initial amount
                                         of carbon for the 5 pools. Defaults to np.array([0, 0, 0, 0, 2.7]).
-            input_carbon (Union[float, np.ndarray], optional): A scalar or np.array
+            input_carbon (float, optional): A scalar or np.array
                                                                 the amount of litter inputs by time. Defaults to 1.7.
-            farmyard_manure (Union[float, np.ndarray], optional): A scalar or np.array object specifying the amount
+            farmyard_manure (float, optional): A scalar or np.array object specifying the amount
                                                                     of Farm Yard Manure inputs by time. Defaults to 0.
             clay (float, optional): Percent clay in mineral soil. Defaults to 23.4.
             soil_thickness (float, optional): Soil thickness im cm. Defaults to 25.0.
@@ -82,32 +83,43 @@ class RothC:
             ValueError: _description_
             ValueError: _description_
         """
-    self.validate_ks(ks)
-    self.validate_C0(C0)
-    self.years = years
-    self.t = np.linspace(1 / 12, years, num=years * 12)
-    self.ks_pulls = ["DPM", "RPM", "BIO", "HUM", "IOM"]
-    self.ks = ks
-    self.C0 = C0
-    self.farmyard_manure = farmyard_manure
-    self.input_carbon = input_carbon
-    self.clay = clay
-    self.DR = DR
-    self.pE = pE
-    self.bare = bare
-    self.soil_thickness = soil_thickness
-    self._t = []
-    self.xi = self._get_stress_parameters(
-        temperature=np.array(temperature),
-        precip=np.array(precip),
-        evaporation=np.array(evaporation),
-    )
 
-    self.xi_func = interp1d(
-        self.t, self.xi, fill_value="extrapolate"  # type: ignore
-    )
-    self._current_XI = []
-    
+        logging.basicConfig(
+            format=(
+                "%(asctime)s, %(levelname)-8s"
+                "[%(filename)s:%(module)s:%(funcName)s"
+                ":%(lineno)d] %(message)s"
+            ),
+            datefmt="%Y-%m-%d:%H:%M:%S",
+        )
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(log_level)
+        self.validate_ks(ks)
+        self.validate_C0(C0)
+        self.years = years
+        self.t = np.linspace(1 / 12, years, num=years * 12)
+        self.ks_pulls = ["DPM", "RPM", "BIO", "HUM", "IOM"]
+        self.ks = ks
+        self.C0 = C0
+        self.farmyard_manure = farmyard_manure
+        self.input_carbon = input_carbon
+        self.clay = clay
+        self.DR = DR
+        self.pE = pE
+        self.bare = bare
+        self.soil_thickness = soil_thickness
+        self._t: list = []
+        self.xi = self._get_stress_parameters(
+            temperature=np.array(temperature),
+            precip=np.array(precip),
+            evaporation=np.array(evaporation),
+        )
+
+        self.xi_func = interp1d(
+            self.t, self.xi, fill_value="extrapolate"  # type: ignore
+        )
+        self._current_XI: list = []
+
     @staticmethod
     def validate_ks(ks: np.ndarray):
         if len(ks) != RothC.KS_LENGTH:
@@ -142,9 +154,6 @@ class RothC:
         acc_TSMD, b = self.fW(
             precip=precip,
             evaporation=evaporation,
-            pE=self.pE,
-            bare=self.bare,
-            clay=self.clay,
             soil_thickness=self.soil_thickness,
         )
         self._stress_temp = stress_temp
@@ -154,8 +163,14 @@ class RothC:
         return xi
 
     def fT(self, temperature: np.ndarray) -> np.ndarray:
-        with np.errstate(divide='ignore', invalid='ignore'):
-            stress_coef = self.STRESS_COEF_CONSTANTS[0] / (1 + np.exp(self.STRESS_COEF_CONSTANTS[1] / (temperature + self.STRESS_COEF_CONSTANTS[2])))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            stress_coef = self.STRESS_COEF_CONSTANTS[0] / (
+                1
+                + np.exp(
+                    self.STRESS_COEF_CONSTANTS[1]
+                    / (temperature + self.STRESS_COEF_CONSTANTS[2])
+                )
+            )
             stress_coef[temperature < -self.STRESS_COEF_CONSTANTS[2]] = np.nan
         return stress_coef
 
@@ -164,17 +179,13 @@ class RothC:
         precip: np.ndarray,
         evaporation: np.ndarray,
         soil_thickness: float,
-        pE: float = 0.75,
-        clay: float = 20.0,
-        bare: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        
         """
             Compute Soil moisture factor
 
         Args:
             precip (np.ndarray): Values of monthly precipitaion
-                                for which the effects on 
+                                for which the effects on
                                 decomposition rates are calculated (mm).
             evaporation (np.ndarray): Values of monthly open pan evaporation or evapotranspiration (mm).
             soil_thickness (float): Soil thickness in cm. Default for Rothamsted is 23 cm.
@@ -197,22 +208,36 @@ class RothC:
         # compute maximum soil moisture deficit
         if precip.shape != evaporation.shape:
             raise ValueError("Precip and evaporation arrays must have the same shape")
-
-        max_smd = -(self.MAX_SMD_CONSTANTS[0] + self.MAX_SMD_CONSTANTS[1] * self.clay - self.MAX_SMD_CONSTANTS[2] * self.clay**2) * (soil_thickness / self.MAX_SMD_CONSTANTS[3])
+        # From paper: -(20 + 1.3 * Clay - 0.01 * clay **2) * depth / 23
+        max_smd = -(
+            self.MAX_SMD_CONSTANTS[0]
+            + self.MAX_SMD_CONSTANTS[1] * self.clay
+            - self.MAX_SMD_CONSTANTS[2] * self.clay**2
+        ) * (soil_thickness / self.MAX_SMD_CONSTANTS[3])
+        # From paper: Mbare = M / 1.8
         if self.bare:
             max_smd /= 1.8
 
         M = precip - evaporation * self.pE
-        acc_TSMD = np.minimum.accumulate(M.clip(max=0))
-        acc_TSMD = np.maximum(acc_TSMD, max_smd)
+        acc_TSMD = np.zeros_like(M, dtype=np.float64)
+        acc_TSMD[0] = min(M[0], 0)
+        for i in range(1, len(M)):
+            acc_TSMD[i] = min(acc_TSMD[i - 1] + M[i], 0)
+            acc_TSMD[i] = max(acc_TSMD[i], max_smd)
 
-        b = self.B_VALUE_CONSTANTS[0] + self.B_VALUE_CONSTANTS[1] * (max_smd - acc_TSMD) / (max_smd - self.B_VALUE_CONSTANTS[2] * max_smd)
+        # from paper : b  =  0.2 + 0.8 * (M - AccM ) / (M - Mb)
+        b = self.B_VALUE_CONSTANTS[0] + self.B_VALUE_CONSTANTS[1] * (
+            max_smd - acc_TSMD
+        ) / (max_smd - self.B_VALUE_CONSTANTS[2] * max_smd)
         b[acc_TSMD > self.B_VALUE_CONSTANTS[2] * max_smd] = 1
 
         return acc_TSMD, b
 
     def get_input_flux(
-        self, input_carbon: float, farmyard_manure: float = 0, DR: float = 1.44
+        self,
+        input_carbon: Union[float, np.ndarray],
+        farmyard_manure: Union[float, np.ndarray] = 0,
+        DR: Union[float, np.ndarray] = 1.44,
     ) -> np.ndarray:
         """
             Get amount of litter inputs
@@ -232,13 +257,31 @@ class RothC:
 
         gamma = DR / (1 + DR)
         input_DPM = input_carbon * gamma + (farmyard_manure * 0.49)
+        input_DPM = np.sum(input_DPM)
         input_RPM = input_carbon * (1 - gamma) + (farmyard_manure * 0.49)
+        input_RPM = np.sum(input_RPM)
         input_BIO = 0
         input_HUM = farmyard_manure * 0.02
+        input_HUM = np.sum(input_HUM)
         input_IOM = 0
-        return np.array([input_DPM, input_RPM, input_BIO, input_HUM, input_IOM])
+        return np.array(
+            [
+                input_DPM,
+                input_RPM,
+                input_BIO,
+                input_HUM,
+                input_IOM,
+            ]
+        )
 
-    def dCdt(self, C, t, input_carbon: Union[float, np.ndarray], farmyard_manure: Union[float, np.ndarray], DR: Union[float, np.ndarray]):
+    def dCdt(
+        self,
+        C,
+        t,
+        input_carbon: Union[float, np.ndarray],
+        farmyard_manure: Union[float, np.ndarray],
+        DR: Union[float, np.ndarray],
+    ):
         """
         Calculates the rate of change of soil carbon over time.
 
@@ -262,7 +305,10 @@ class RothC:
         """
         self._t.append(t)
         ks = self.ks
-        x = self.DC_DT_CONSTANTS[0] * (self.DC_DT_CONSTANTS[1] + self.DC_DT_CONSTANTS[2] * np.exp(-self.DC_DT_CONSTANTS[3] * self.clay))
+        x = self.DC_DT_CONSTANTS[0] * (
+            self.DC_DT_CONSTANTS[1]
+            + self.DC_DT_CONSTANTS[2] * np.exp(-self.DC_DT_CONSTANTS[3] * self.clay)
+        )
         B = self.DC_DT_CONSTANTS[4] / (x + 1)
         H = self.DC_DT_CONSTANTS[5] / (x + 1)
         ai3 = B * ks
@@ -277,5 +323,12 @@ class RothC:
         return C_next
 
     def compute(self):
-        y1 = odeint(self.dCdt, self.C0, t=self.t, rtol=0.01, atol=0.01)
+        y1 = odeint(
+            self.dCdt,
+            self.C0,
+            t=self.t,
+            args=(self.input_carbon, self.farmyard_manure, self.DR),
+            rtol=0.01,
+            atol=0.01,
+        )
         return pd.DataFrame(y1, columns=self.ks_pulls)
