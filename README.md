@@ -30,6 +30,15 @@ RothC is a model for the turnover of organic carbon in non-waterlogged topsoil t
 
 Inspired by SoilR version <a href="https://www.bgc-jena.mpg.de/TEE/basics/2015/11/19/RothC/" target="_blank">SoilR RothC</a>
 
+## Quick Start - Google Colab
+
+## Google Colab 
+
+Open `pyRothC.ipynb` in Google Colab!
+
+<a href="https://colab.research.google.com/github/mishagrol/pyRothC/blob/main/notebooks/pyRothC.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+
 ## Requirements
 
 Python 3.7+
