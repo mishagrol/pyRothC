@@ -6,12 +6,13 @@
     Author: Misha Grol - grol81@mail.ru
 """
 
-from typing import Union, Tuple
+import logging
+from typing import Tuple, Union
+
 import numpy as np
 import pandas as pd
 from scipy.integrate import odeint
 from scipy.interpolate import interp1d
-import logging
 
 
 class RothC:
